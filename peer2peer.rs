@@ -53,10 +53,10 @@ use tokio::sync::mpsc;
 // pub static 체인_토픽: Lazy<Topic> = Lazy::new(|| Topic::new("chains"));
 // pub static 블록_토픽: Lazy<Topic> = Lazy::new(|| Topic::new("블록들"));
 
-pub const KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
-pub const 피어_아이디: Lazy<PeerId> = Lazy::new(|| PeerId::from(KEYS.public()));
-pub const 체인_토픽: Lazy<Topic> = Lazy::new(|| Topic::new("chains"));
-pub const 블록_토픽: Lazy<Topic> = Lazy::new(|| Topic::new("블록들"));
+pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
+pub static PEER_ID: Lazy<PeerId> = Lazy::new(|| PeerId::from(KEYS.public()));
+pub static CHAIN_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("chains"));
+pub static BLOCK_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("블록들"));
 
 
 
