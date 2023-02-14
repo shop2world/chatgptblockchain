@@ -1,3 +1,4 @@
+use serde_json::json;
 // chrono::prelude::* 모듈은 Rust의 라이브러리인 chrono 라이브러리에서 제공하는 
 // 시간 관련 기능을 포함하고 있습니다. 
 // prelude 는 Rust의 표준 라이브러리에서 제공하는 미리 준비된 기능 집합을 의미하며, 
@@ -62,19 +63,44 @@ pub struct 앱 {
     pub 블록들: Vec<블록>,
 }
 
+
+
 // "#[derive]"는 Rust 프로그래밍 언어에서의 매크로 어노테이션이다. "derive" 키워드는 Rust 컴파일러에게 특정 트레잇(trait)의 기본 구현을 생성하도록 지시한다. 예를 들어, "Serialize"라는 트레잇의 기본 구현을 생성하는 것이 가능하다. 만약, "Deserialize"라는 트레잇의 기본 구현을 생성하는 것이 가능하다면 그것도 가능하다.
 // "Debug" 트레잇의 기본 구현을 생성하는 것도 가능하다. 이 트레잇은 객체의 디버깅 정보를 출력하는 기본 구현을 생성하도록 한다.
 // "Clone" 트레잇의 기본 구현을 생성하는 것도 가능하다. 이 트레잇은 객체의 복제 기능을 생성하도록 한다
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct 블록 {
+//     pub id: u64,
+//     pub 해시: String,
+//     pub 이전_해시: String,
+//     pub 타임스탬프: i64,
+//     pub 데이터: String,
+//     pub 논스: u64,
+// }
+
+// Rust 프로그래밍 언어에서 #[derive(...)] 매크로를 사용한 것입니다. derive 매크로는 구조체, 열거형 등의 타입에서 자동으로 특정 트레잇(trait)을 구현하는 것을 도와줍니다.
+
+// 여기서 구현하는 트레잇은 다음과 같습니다.
+
+// Serialize: 이 타입을 직렬화(serialize)할 수 있다는 것을 나타냅니다.
+// Deserialize: 이 타입을 역직렬화(deserialize)할 수 있다는 것을 나타냅니다.
+// Debug: 이 타입을 디버깅할 때 {:?} 포맷으로 출력할 수 있다는 것을 나타냅니다.
+// Clone: 이 타입을 복제할 수 있다는 것을 나타냅니다.
+// Eq: 이 타입이 같은지 비교할 수 있다는 것을 나타냅니다.
+// PartialEq: 이 타입이 일부분 같은지 비교할 수 있다는 것을 나타냅니다.
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct 블록 {
-    pub id: u64,
-    pub 해시: String,
-    pub 이전_해시: String,
-    pub 타임스탬프: i64,
-    pub 데이터: String,
-    pub 논스: u64,
+    id: u64,
+    타임스탬프: i64,
+    데이터: String,
+    이전_해시: String,
+    해시: String,
+    논스: u64,
+    
 }
+
 
 impl 블록 {
     pub fn new(id: u64, 이전_해시: String, 데이터: String) -> Self {
@@ -91,54 +117,109 @@ impl 블록 {
     }
 }
 
+// fn 해쉬_계산(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str, 논스: u64) -> Vec<u8> {
+//     let 데이터 = serde_json::json!({
+//         "id": id,
+//         "이전_해시": 이전_해시,
+//         "데이터": 데이터,
+//         "타임스탬프": 타임스탬프,
+//         "논스": 논스
+//     });
+//     let mut hasher = Sha256::new();
+//     hasher.update(데이터.to_string().as_bytes());
+//     hasher.finalize().as_slice().to_owned()
+// }
+
 fn 해쉬_계산(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str, 논스: u64) -> Vec<u8> {
-    let 데이터 = serde_json::json!({
+    let 데이터 = serde_json::to_value(&json!({
         "id": id,
         "이전_해시": 이전_해시,
         "데이터": 데이터,
         "타임스탬프": 타임스탬프,
         "논스": 논스
-    });
+    })).unwrap();
     let mut hasher = Sha256::new();
     hasher.update(데이터.to_string().as_bytes());
-    hasher.finalize().as_slice().to_owned()
+    hasher.finalize().to_vec()
 }
+
+
+
+
+// fn 블록_채굴(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str) -> (u64, String) {
+//     info!("블록 채굴...");
+//     let mut 논스 = 0;
+
+//     loop {
+//         if 논스 % 100000 == 0 {
+//             info!("논스: {}", 논스);
+//         }
+//         let 해시 = 해쉬_계산(id, 타임스탬프, 이전_해시, 데이터, 논스);
+//         let 이진_해쉬 = 해쉬_이진수_표현(&해시);
+//         if 이진_해쉬.starts_with(난이도) {
+//             info!(
+//                 "성공! 논스: {}, 해시: {}, binary 해시: {}",
+//                 논스,
+//                 hex::encode(&해시),
+//                 이진_해쉬
+//             );
+//             return (논스, hex::encode(해시));
+//         }
+//         논스 += 1;
+//     }
+// }
 
 fn 블록_채굴(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str) -> (u64, String) {
     info!("블록 채굴...");
     let mut 논스 = 0;
 
-    loop {
+    for _ in 0..std::usize::MAX {
         if 논스 % 100000 == 0 {
             info!("논스: {}", 논스);
         }
         let 해시 = 해쉬_계산(id, 타임스탬프, 이전_해시, 데이터, 논스);
-        let binary_hash = 해쉬_이진수_표현(&해시);
-        if binary_hash.starts_with(난이도) {
+        let 이진_해쉬 = 해쉬_이진수_표현(&해시);
+        if 이진_해쉬.starts_with(난이도) {
             info!(
-                "mined! 논스: {}, 해시: {}, binary 해시: {}",
+                "성공! 논스: {}, 해시: {}, binary 해시: {}",
                 논스,
                 hex::encode(&해시),
-                binary_hash
+                이진_해쉬
             );
             return (논스, hex::encode(해시));
         }
         논스 += 1;
     }
-}
+    (0, "".to_string())
+} 
+
+
+
+// fn 해쉬_이진수_표현(해시: &[u8]) -> String {
+//     let mut 결과: String = String::default();
+//     for z in 해시 {
+//         결과.push_str(&format!("{:b}", z));
+//     }
+//     결과
+// }
+
+// 챗 gpt 이 rust 코드는 해쉬_이진수_표현 함수이다. 이 함수는 해시 바이트 배열을 받아, 각 바이트를 2진수 문자열로 변환하여 하나의 연속된 문자열로 만든 뒤 반환한다.
+
+// 함수 내에서, 해시 배열의 각 바이트에 대해 iter 메소드를 호출하여 바이트의 반복자(iterator)를 생성한다. 그리고 각 반복자에 대해 map 메소드를 호출하여, 각 바이트를 2진수 문자열 "{:b}" 로 포매팅한다. collect 메소드를 호출하여 만들어진 모든 2진수 문자열을 하나의 연속된 문자열 String 으로 모은다.
+
+// 최종적으로, 함수는 만들어진 문자열 String을 반환한다.
 
 fn 해쉬_이진수_표현(해시: &[u8]) -> String {
-    let mut res: String = String::default();
-    for c in 해시 {
-        res.push_str(&format!("{:b}", c));
-    }
-    res
+    해시.iter().map(|z| format!("{:b}", z)).collect::<String>()
 }
 
 
 impl 앱 {
-    fn new() -> Self {
-        Self { 블록들: vec![] }
+    // fn new() -> Self {
+    //     Self { 블록들: vec![] }
+    // }
+    fn new() -> 앱 {
+        앱 { 블록들: vec![] }
     }
 
     fn 제네시스_함수(&mut self) {
@@ -152,15 +233,58 @@ impl 앱 {
         };
         self.블록들.push(제네시스블록_변수);
     }
+    
+
+    // fn 블록_추가시도_함수(&mut self, block: 블록) {
+    //     let 마지막_블록 = self.블록들.last().expect("적어도 하나의 블록이 존재");
+    //     if self.블록_유효성확인_함수(&block, 마지막_블록) {
+    //         self.블록들.push(block);
+    //     } else {
+    //         error!("블록 추가 불가 - 유효하지 않음");
+    //     }
+    // }
 
     fn 블록_추가시도_함수(&mut self, block: 블록) {
         let 마지막_블록 = self.블록들.last().expect("적어도 하나의 블록이 존재");
-        if self.블록_유효성확인_함수(&block, 마지막_블록) {
-            self.블록들.push(block);
-        } else {
-            error!("블록 추가 불가 - 유효하지 않음");
+        match self.블록_유효성확인_함수(&block, 마지막_블록) {
+        true => self.블록들.push(block),
+        false => error!("블록 추가 불가 - 유효하지 않음"),
         }
     }
+
+
+    
+
+    // fn 블록_유효성확인_함수(&self, block: &블록, previous_block: &블록) -> bool {
+    //     if block.이전_해시 != previous_block.해시 {
+    //         warn!("id: {} 인 블록은 잘못된 이전 해시를 가짐", block.id);
+    //         return false;
+    //     } else if !해쉬_이진수_표현(
+    //         &hex::decode(&block.해시).expect("16진수로부터 디코딩할 수 있음."),
+    //     )
+    //     .starts_with(난이도)
+    //     {
+    //         warn!("id: {} 인 블록의 난이도가 잘못되었습니다.", block.id);
+    //         return false;
+    //     } else if block.id != previous_block.id + 1 {
+    //         warn!(
+    //             "id: {} 를 가진 블록은 유효하지 않은 난이도를 가지고 있습니다.: {}",
+    //             block.id, previous_block.id
+    //         );
+    //         return false;
+    //     } else if hex::encode(해쉬_계산(
+    //         block.id,
+    //         block.타임스탬프,
+    //         &block.이전_해시,
+    //         &block.데이터,
+    //         block.논스,
+    //     )) != block.해시
+    //     {
+    //         warn!("블록 id: {} 의 해시가 올바르지 않습니다", block.id);
+    //         return false;
+    //     }
+    //     true
+    // }
 
     fn 블록_유효성확인_함수(&self, block: &블록, previous_block: &블록) -> bool {
         if block.이전_해시 != previous_block.해시 {
@@ -199,16 +323,33 @@ impl 앱 {
 
 // 만약 유효성 확인에서 false 값이 반환된다면, 함수는 바로 false 값을 반환하여 유효하지 않은 것으로 간주합니다. 그렇지 않으면, 함수는 true 값을 반환하여 유효한 것으로 간주합니다.
 
+    // fn 체인_유효성_확인_함수(&self, chain: &[블록]) -> bool {
+    //     for i in 0..chain.len() {
+    //         if i == 0 {
+    //             continue;
+    //         }
+    //         let 첫번째 = chain.get(i - 1).expect("존재해야 합니다");
+    //         let 두번째 = chain.get(i).expect("존재해야 합니다");
+    //         if !self.블록_유효성확인_함수(두번째, 첫번째) {
+    //             return false;
+    //         }
+    //     }
+    //     true
+    // }
+
     fn 체인_유효성_확인_함수(&self, chain: &[블록]) -> bool {
-        for i in 0..chain.len() {
+        let mut i = 0;
+        while i < chain.len() {
             if i == 0 {
-                continue;
+            i += 1;
+            continue;
             }
-            let first = chain.get(i - 1).expect("존재해야 합니다");
-            let second = chain.get(i).expect("존재해야 합니다");
-            if !self.블록_유효성확인_함수(second, first) {
+            let 첫번째 = chain.get(i - 1).expect("존재해야 합니다");
+            let 두번째 = chain.get(i).expect("존재해야 합니다");
+            if !self.블록_유효성확인_함수(두번째, 첫번째) {
                 return false;
             }
+            i += 1;
         }
         true
     }
@@ -239,7 +380,7 @@ async fn main() {
     // pretty_env_logger 는 Rust 프로그래밍 언어에서의 라이브러리 이름입니다. 이 라이브러리는 Rust 프로젝트에서 환경 변수를 통해 로깅을 설정할 수 있도록 도와주는 로깅 라이브러리입니다.
     pretty_env_logger::init();
 
-    info!("Peer Id: {}", peer2peer::PEER_ID.clone());
+    info!("Peer Id: {}", peer2peer::피어_아이디.clone());
     let (반응_송신자, mut 반응_수신) = mpsc::unbounded_channel();
     let (초기_송신자, mut 초기_수신) = mpsc::unbounded_channel();
 
@@ -255,7 +396,7 @@ async fn main() {
 
     let 처리_하자 = peer2peer::앱동작_구조체::new(앱::new(), 반응_송신자, 초기_송신자.clone()).await;
 
-    let mut swarm = SwarmBuilder::new(transp, 처리_하자, *peer2peer::PEER_ID)
+    let mut swarm = SwarmBuilder::new(transp, 처리_하자, *peer2peer::피어_아이디)
         .executor(Box::new(|fut| {
             spawn(fut);
         }))
@@ -315,7 +456,7 @@ async fn main() {
                         swarm
                             .behaviour_mut()
                             .floodsub
-                            .publish(peer2peer::CHAIN_TOPIC.clone(), json.as_bytes());
+                            .publish(peer2peer::체인_토픽.clone(), json.as_bytes());
                     }
                 }
                 peer2peer::이벤트_유형_열거형_데이타::로컬_체인_반응(응답) => {
@@ -323,17 +464,19 @@ async fn main() {
                     swarm
                         .behaviour_mut()
                         .floodsub
-                        .publish(peer2peer::CHAIN_TOPIC.clone(), json.as_bytes());
+                        .publish(peer2peer::체인_토픽.clone(), json.as_bytes());
                 }
                 peer2peer::이벤트_유형_열거형_데이타::Input(라인) => match 라인.as_str() {
                     "ls p" => peer2peer::연결된_peer_출력_함수(&swarm),
-                    cmd if cmd.starts_with("ls c") => peer2peer::체인_출력_처리_함수(&swarm),
-                    cmd if cmd.starts_with("create b") => peer2peer::새_블록_생성_처리_함수(cmd, &mut swarm),
+                    터미날 if 터미날.starts_with("ls c") => peer2peer::체인_출력_처리_함수(&swarm),
+                    터미날 if 터미날.starts_with("create b") => peer2peer::새_블록_생성_처리_함수(터미날, &mut swarm),
                     _ => error!("모르는 명령"),
                 },
             }
         }
     }
+
+    
 }
 
 
