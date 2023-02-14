@@ -48,10 +48,17 @@ use std::collections::HashSet;
 // Rust 프로그래머는 mpsc 큐와 관련된 데이터 전송 작업을 효율적으로 수행할 수 있습니다.
 use tokio::sync::mpsc;
 
-pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
-pub static PEER_ID: Lazy<PeerId> = Lazy::new(|| PeerId::from(KEYS.public()));
-pub static CHAIN_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("chains"));
-pub static BLOCK_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("블록들"));
+// pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
+// pub static 피어_아이디: Lazy<PeerId> = Lazy::new(|| PeerId::from(KEYS.public()));
+// pub static 체인_토픽: Lazy<Topic> = Lazy::new(|| Topic::new("chains"));
+// pub static 블록_토픽: Lazy<Topic> = Lazy::new(|| Topic::new("블록들"));
+
+pub const KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
+pub const 피어_아이디: Lazy<PeerId> = Lazy::new(|| PeerId::from(KEYS.public()));
+pub const 체인_토픽: Lazy<Topic> = Lazy::new(|| Topic::new("chains"));
+pub const 블록_토픽: Lazy<Topic> = Lazy::new(|| Topic::new("블록들"));
+
+
 
 // #[derive(Debug, Serialize, Deserialize)]는 Rust의 특수한 문법입니다. 
 // 이 구문은 로칼_체인_요청_구조체 구조체에 Debug, Serialize, Deserialize 
@@ -67,8 +74,10 @@ pub struct 체인_반응_구조체 {
     pub 수신자: String,
 }
 
+
+
 #[derive(Debug, Serialize, Deserialize)]
-pub struct 로칼_체인_요청_구조체 {
+pub enum 로칼_체인_요청_구조체 {
     pub 출처_peer_id: String,
 }
 
@@ -98,7 +107,7 @@ impl 앱동작_구조체 {
     ) -> Self {
         let mut behaviour = Self {
             app,
-            floodsub: Floodsub::new(*PEER_ID),
+            floodsub: Floodsub::new(*피어_아이디),
             mdns: Mdns::new(Default::default())
                 .await
                 .expect("mdns를 만들 수 없음"),
@@ -111,8 +120,8 @@ impl 앱동작_구조체 {
         // Floodsub 모듈은 libp2p 피어 간에 메시지를 퍼뜨리는 (flood) 프로토콜을 제공하며, 
         // 이 구독 기능은 메시지를 받을 수 있는 방식을 제공합니다.
 
-        behaviour.floodsub.subscribe(CHAIN_TOPIC.clone());
-        behaviour.floodsub.subscribe(BLOCK_TOPIC.clone());
+        behaviour.floodsub.subscribe(체인_토픽.clone());
+        behaviour.floodsub.subscribe(블록_토픽.clone());
 
         behaviour
     }
@@ -131,7 +140,7 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for 앱동작_구조체 {
     fn inject_event(&mut self, event: FloodsubEvent) {
         if let FloodsubEvent::Message(메세지) = event {
             if let Ok(응답) = serde_json::from_slice::<체인_반응_구조체>(&메세지.data) {
-                if 응답.수신자 == PEER_ID.to_string() {
+                if 응답.수신자 == 피어_아이디.to_string() {
                     info!("{}에서의 응답:", 메세지.source);
                     응답.블록들.iter().for_each(|r| info!("{:?}", r));
 
@@ -140,7 +149,7 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for 앱동작_구조체 {
             } else if let Ok(응답) = serde_json::from_slice::<로칼_체인_요청_구조체>(&메세지.data) {
                 info!("로칼 체인을 {}에 보내는 중", 메세지.source.to_string());
                 let peer_id = 응답.출처_peer_id;
-                if PEER_ID.to_string() == peer_id {
+                if 피어_아이디.to_string() == peer_id {
                     if let Err(e) = self.반응_송신자.send(체인_반응_구조체 {
                         블록들: self.app.블록들.clone(),
                         수신자: 메세지.source.to_string(),
@@ -177,12 +186,15 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for 앱동작_구조체 {
 
 pub fn peer_목록_얻기(swarm: &Swarm<앱동작_구조체>) -> Vec<String> {
     info!("발견된 피어들:");
-    let nodes = swarm.behaviour().mdns.discovered_nodes();//네트워크에서 찾은 노드 목록을 nodes 변수에 할당
-    let mut unique_peers = HashSet::new();
-    for peer in nodes {
-        unique_peers.insert(peer);
+    let 노드들 = swarm.behaviour().mdns.discovered_nodes();//네트워크에서 찾은 노드 목록을 노드들 변수에 할당
+    // let mut 중복되지않는_피어 = HashSet::new();은 러스트 코드에서 해쉬 세트 타입의 변수 중복되지않는_피어를 선언하고 생성하는 구문입니다. HashSet은 중복을 허용하지 않는 컬렉션입니다. 중복되지 않는 값들을 보관하고자 할 때 사용합니다. new 메소드는 빈 해쉬 세트를 생성하고 반환합니다.
+
+    // 예를 들어, 중복되지않는_피어.insert(1), 중복되지않는_피어.insert(2)를 호출한 뒤, 중복되지않는_피어.insert(2)를 호출하면, 해쉬 세트에는 2개의 값 1과 2만이 남습니다. 만약 해쉬 세트가 아닌 다른 컬렉션에서 같은 값 2를 추가하면, 2개의 같은 값 2가 있게 됩니다.
+    let mut 중복되지않는_피어 = HashSet::new();
+    for peer in 노드들 {
+        중복되지않는_피어.insert(peer);
     }
-    unique_peers.iter().map(|p| p.to_string()).collect()
+    중복되지않는_피어.iter().map(|p| p.to_string()).collect()
 }
 
 //아래의 rust 함수는 Swarm<앱동작_구조체> 타입의 참조자 swarm을 인자로 받아, peer 목록을 얻어와 각 peer를 출력하는 함수입니다.
@@ -194,15 +206,17 @@ pub fn 연결된_peer_출력_함수(swarm: &Swarm<앱동작_구조체>) {
 pub fn 체인_출력_처리_함수(swarm: &Swarm<앱동작_구조체>) {
     info!("로컬 블록체인:");
     let 블록_json =
+    // "serde_json::to_string_pretty()" 는 Rust에서 serde_json 라이브러리에 정의된 메소드입니다. "to_string_pretty"은 serde_json 라이브러리를 사용하여 데이터를 JSON 문자열로 변환하는 메소드입니다. 이 메소드는 변환된 JSON 문자열을 보기 좋게 정렬합니다.
         serde_json::to_string_pretty(&swarm.behaviour().app.블록들).expect("블록들을 json으로 변환할 수 있음");
     info!("{}", 블록_json);
 }
 
-pub fn 새_블록_생성_처리_함수(cmd: &str, swarm: &mut Swarm<앱동작_구조체>) {
+pub fn 새_블록_생성_처리_함수(터미날: &str, swarm: &mut Swarm<앱동작_구조체>) {
 // "Some"은 Rust에서 제공하는 표준 라이브러리의 타입인 Option의 부분 타입입니다. 
 // "Option"은 어떤 값이 존재할 수도 아닐 수도 있는 경우에 사용됩니다.
 // Some(데이터)는 Option 타입으로서 값이 존재한다는 의미입니다.만약 값이 존재하지 않으면 None을 반환합니다.
-    if let Some(데이터) = cmd.strip_prefix("create b") {
+// "strip_prefix" 메소드는 해당 문자열의 앞에서부터 지정된 문자열을 제거하는 메소드
+    if let Some(데이터) = 터미날.strip_prefix("create b") {
         let behaviour = swarm.behaviour_mut();
         let 마지막_블록 = behaviour
             .app
@@ -214,13 +228,14 @@ pub fn 새_블록_생성_처리_함수(cmd: &str, swarm: &mut Swarm<앱동작_�
             마지막_블록.해시.clone(),
             데이터.to_owned(),
         );
-        // 아래 줄은 Rust에서 serde_json 라이브러리를 사용하여 블록 객체를 json 형식으로 변환하는 과정.
+        // 아래 줄은 Rust에서 serde_json 라이브러리를 사용하여 블록 객체를 
+        // json 형식으로 변환하는 과정.
         // 결과적으로 json 변수에는 블록 객체를 json 형식으로 변환한 결과가 저장
         let json = serde_json::to_string(&block).expect("블록들을 json으로 변환할 수 있음");
         behaviour.app.블록들.push(block);
         info!("새 블록을 broadcast 합니다");
         behaviour
             .floodsub
-            .publish(BLOCK_TOPIC.clone(), json.as_bytes());
+            .publish(블록_토픽.clone(), json.as_bytes());//json.as_bytes()는 json 문자열을 바이트 배열로 변환하는 메소드입니다. 이 메소드를 호출하면, json 문자열이 u8 타입의 배열로 변환됩니다. 예를 들어, "hello" 라는 문자열이 있다면 as_bytes()를 호출하면 [104, 101, 108, 108, 111]이 됩니다.
     }
 }
