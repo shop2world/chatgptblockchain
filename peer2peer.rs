@@ -440,3 +440,208 @@ pub fn 새_블록_생성_처리_함수(터미날: &str, swarm: &mut Swarm<앱동
             .publish(블록_토픽.clone(), json.as_bytes());//json.as_bytes()는 json 문자열을 바이트 배열로 변환하는 메소드입니다. 이 메소드를 호출하면, json 문자열이 u8 타입의 배열로 변환됩니다. 예를 들어, "hello" 라는 문자열이 있다면 as_bytes()를 호출하면 [104, 101, 108, 108, 111]이 됩니다.
     }
 }
+
+========================shop
+
+
+
+
+
+
+
+use super::{앱, 블록};
+use libp2p::{
+    NetworkBehaviour,
+    identity,
+    mdns::{Mdns, MdnsEvent},
+    swarm::{
+        NetworkBehaviourEventProcess, Swarm,
+    },
+    PeerId,
+    floodsub::{Floodsub, FloodsubEvent, Topic},
+};
+
+
+use log::{error, info};
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use tokio::sync::mpsc;
+
+pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
+pub static PEER_ID: Lazy<PeerId> = Lazy::new(|| PeerId::from(KEYS.public()));
+pub static CHAIN_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("chains"));
+pub static BLOCK_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("블록들"));
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct 체인_반응_구조체 {
+    pub 블록들: Vec<블록>,
+    pub 수신자: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct 로칼_체인_요청_구조체 {
+    pub 출처_peer_id: String,
+}
+
+pub enum 이벤트_유형_열거형_데이타 {
+    로컬_체인_반응(체인_반응_구조체),
+    Input(String),
+    Init,
+}
+
+#[derive(NetworkBehaviour)]
+pub struct 앱동작_구조체 {
+    pub floodsub: Floodsub,
+    pub mdns: Mdns,
+    #[behaviour(ignore)]//컴파일러에게 해당 코드를 무시하도록 알려주는 것입니다. "behaviour"은 특정 기능을 정의하는 Rust 플러그인이고, "ignore"는 그 플러그인에서 정의한 기능 중 하나입니다.
+    pub 반응_송신자: mpsc::UnboundedSender<체인_반응_구조체>,
+    #[behaviour(ignore)]
+    pub 초기_송신자: mpsc::UnboundedSender<bool>,
+    #[behaviour(ignore)]
+    pub app: 앱,
+}
+
+impl 앱동작_구조체 {
+    pub async fn new(
+        app: 앱,
+        반응_송신자: mpsc::UnboundedSender<체인_반응_구조체>,
+        초기_송신자: mpsc::UnboundedSender<bool>,
+    ) -> Self {
+        let mut behaviour = Self {
+            app,
+            floodsub: Floodsub::new(*PEER_ID),
+            mdns: Mdns::new(Default::default())
+                .await
+                .expect("mdns를 만들 수 없음"),
+            반응_송신자,
+            초기_송신자,
+        };
+        // behaviour.floodsub.subscribe의 의미는 Floodsub 모듈의 subscribe 기능을 호출하고, 
+        // 해당 기능을 통해 특정 토픽에 대한 구독을 수행하는 것을 의미합니다.이 구독은 libp2p 
+        // 네트워크에 있는 다른 피어들에서 전달되는 해당 토픽에 대한 메시지를 받게 됩니다. 
+        // Floodsub 모듈은 libp2p 피어 간에 메시지를 퍼뜨리는 (flood) 프로토콜을 제공하며, 
+        // 이 구독 기능은 메시지를 받을 수 있는 방식을 제공합니다.
+
+        behaviour.floodsub.subscribe(CHAIN_TOPIC.clone());
+        behaviour.floodsub.subscribe(BLOCK_TOPIC.clone());
+
+        behaviour
+    }
+}
+
+// 수신 이벤트 핸들러
+
+// NetworkBehaviourEventProcess 라는 모듈은 네트워크 동작 이벤트를 처리하는 모듈로서
+// libp2p::swarm::NetworkBehaviourEventProcess 를 통해 가져와 사용
+// Floodsub 모듈에서 inject_event 함수의 기능은 Floodsub 플러그인의 상태에 이벤트를 
+// 주입하는 것입니다. 
+// 이 함수는 Floodsub 플러그인의 상태를 업데이트하고, 이벤트에 대한 처리를 수행합니다. 
+// 예를 들어, 새로운 구독에 대한 알림, 메시지 수신 등의 작업을 포함할 수 있습니다.
+
+impl NetworkBehaviourEventProcess<FloodsubEvent> for 앱동작_구조체 {
+    fn inject_event(&mut self, event: FloodsubEvent) {
+        // FloodsubEvent::Message인 경우에는 if, else if로 처리하면서, 
+        //나머지 경우에는 _로 처리하도록 했습니다. _는 모든 패턴에 매치되는 와일드카드 패턴입니다.
+        match event {
+            FloodsubEvent::Message(message) => {
+                if let Ok(response) = serde_json::from_slice::<체인_반응_구조체>(&message.data) {
+                    if response.수신자 == PEER_ID.to_string() {
+                        info!("{}에서의 응답:", message.source);
+                        response.블록들.iter().for_each(|r| info!("{:?}", r));
+        
+                        self.app.블록들 = self.app.체인_선택_함수(self.app.블록들.clone(), response.블록들);
+                    }
+                } else if let Ok(response) = serde_json::from_slice::<로칼_체인_요청_구조체>(&message.data) {
+                    info!("로칼 체인을 {}에 보내는 중", message.source.to_string());
+                    let peer_id = response.출처_peer_id;
+                    if PEER_ID.to_string() == peer_id {
+                        if let Err(e) = self.반응_송신자.send(체인_반응_구조체 {
+                            블록들: self.app.블록들.clone(),
+                            수신자: message.source.to_string(),
+                        }) {
+                            error!("채널로 반응을 보내는데 에러발생, {}", e);
+                        }
+                    }
+                } else if let Ok(block) = serde_json::from_slice::<블록>(&message.data) {
+                    info!("{} 에서 새로운 블록을 받음", message.source.to_string());
+                    self.app.블록_추가시도_함수(block);
+                }
+            }
+            _ => {}
+        }
+        
+    }
+}
+
+impl NetworkBehaviourEventProcess<MdnsEvent> for 앱동작_구조체 {
+    fn inject_event(&mut self, event: MdnsEvent) {
+        match event {
+            MdnsEvent::Discovered(발견된_노드_목록) => {
+                for (peer, _addr) in 발견된_노드_목록 {
+                    self.floodsub.add_node_to_partial_view(peer);
+                }
+            }
+            MdnsEvent::Expired(만료된_노드_목록) => {
+                for (peer, _addr) in 만료된_노드_목록 {
+                    if !self.mdns.has_node(&peer) {
+                        self.floodsub.remove_node_from_partial_view(&peer);
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub fn peer_목록_얻기(swarm: &Swarm<앱동작_구조체>) -> Vec<String> {
+    info!("발견된 피어들:");
+    let nodes = swarm.behaviour().mdns.discovered_nodes();//네트워크에서 찾은 노드 목록을 nodes 변수에 할당
+    let mut unique_peers = HashSet::new();
+    for peer in nodes {
+        unique_peers.insert(peer);
+    }
+    unique_peers.iter().map(|p| p.to_string()).collect()
+}
+
+//아래의 rust 함수는 Swarm<앱동작_구조체> 타입의 참조자 swarm을 인자로 받아, peer 목록을 얻어와 각 peer를 출력하는 함수입니다.
+pub fn 연결된_peer_출력_함수(swarm: &Swarm<앱동작_구조체>) {
+    let peers = peer_목록_얻기(swarm);
+    peers.iter().for_each(|p| info!("{}", p));
+}
+
+pub fn 체인_출력_처리_함수(swarm: &Swarm<앱동작_구조체>) {
+    info!("로컬 블록체인:");
+    let 블록_json =
+        serde_json::to_string_pretty(&swarm.behaviour().app.블록들).expect("블록들을 json으로 변환할 수 있음");
+    info!("{}", 블록_json);
+}
+//
+pub fn 새_블록_생성_처리_함수(cmd: &str, swarm: &mut Swarm<앱동작_구조체>) {
+    match cmd.strip_prefix("new block") {
+        Some(데이터) => {
+            let behaviour = swarm.behaviour_mut();
+            let 마지막_블록 = behaviour
+                .app
+                .블록들
+                .last()
+                .expect("적어도 하나의 블록이 있어야 합니다");
+            let block = 블록::new(
+                마지막_블록.id + 1,
+                마지막_블록.해시.clone(),
+                데이터.to_owned(),
+            );
+
+            let json = serde_json::to_string(&block).expect("블록들을 json으로 변환할 수 있음");
+            behaviour.app.블록들.push(block);
+            info!("새 블록을 broadcast 합니다");
+            behaviour
+                .floodsub
+                .publish(BLOCK_TOPIC.clone(), json.as_bytes());
+        },
+        None => {},
+    }
+}
+
+
+
+
