@@ -65,16 +65,41 @@ fn 해시_계산(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: 
     hasher.update(데이터.to_string().as_bytes());
     hasher.finalize().as_slice().to_owned()
 }
-//
+
+// 리눅스에서 오류나는 코드
+// fn 블록_채굴(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str) -> (u64, String) {
+//     info!("블록 채굴...");
+//     let mut 논스 = 0;
+
+//     for _ in 0..std::usize::MAX {
+//         if 논스 % 100000 == 0 {
+//             info!("논스: {}", 논스);
+//         }
+//         let 해시 = 해쉬_계산(id, 타임스탬프, 이전_해시, 데이터, 논스);
+//         let 이진_해쉬 = 해쉬_이진수_표현(&해시);
+//         if 이진_해쉬.starts_with(난이도) {
+//             info!(
+//                 "성공! 논스: {}, 해시: {}, binary 해시: {}",
+//                 논스,
+//                 hex::encode(&해시),
+//                 이진_해쉬
+//             );
+//             return (논스, hex::encode(해시));
+//         }
+//         논스 += 1;
+//     }
+//     (0, "".to_string())
+// } 
+
 fn 블록_채굴(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str) -> (u64, String) {
     info!("블록 채굴...");
     let mut 논스 = 0;
 
-    for _ in 0..std::usize::MAX {
+    loop {
         if 논스 % 100000 == 0 {
             info!("논스: {}", 논스);
         }
-        let 해시 = 해쉬_계산(id, 타임스탬프, 이전_해시, 데이터, 논스);
+        let 해시 = 해시_계산(id, 타임스탬프, 이전_해시, 데이터, 논스);
         let 이진_해쉬 = 해쉬_이진수_표현(&해시);
         if 이진_해쉬.starts_with(난이도) {
             info!(
@@ -87,8 +112,7 @@ fn 블록_채굴(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: 
         }
         논스 += 1;
     }
-    (0, "".to_string())
-} 
+}
 //변수만 아니라 코드도 바꾼 부분
 fn 해쉬_이진수_표현(해시: &[u8]) -> String {
     해시.iter().map(|z| format!("{:b}", z)).collect::<String>()
@@ -249,7 +273,7 @@ async fn main() {
             match event {
                 peer2peer::EventType::Init => {
                     let peers = peer2peer::get_list_peers(&swarm);
-                    swarm.behaviour_mut().앱.genesis();
+                    swarm.behaviour_mut().app.genesis();
 
                     info!("connected nodes: {}", peers.len());
                     if !peers.is_empty() {
