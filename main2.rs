@@ -249,7 +249,7 @@ async fn main() {
             match event {
                 peer2peer::EventType::Init => {
                     let peers = peer2peer::get_list_peers(&swarm);
-                    swarm.behaviour_mut().app.genesis();
+                    swarm.behaviour_mut().앱.genesis();
 
                     info!("connected nodes: {}", peers.len());
                     if !peers.is_empty() {
