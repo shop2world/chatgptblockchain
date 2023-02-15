@@ -153,13 +153,9 @@ pub fn peer_목록_얻기(swarm: &Swarm<앱동작_구조체>) -> Vec<String> {
 }
 
 //아래의 rust 함수는 Swarm<앱동작_구조체> 타입의 참조자 swarm을 인자로 받아, peer 목록을 얻어와 각 peer를 출력하는 함수입니다.
-// pub fn 연결된_peer_출력_함수(swarm: &Swarm<앱동작_구조체>) {
-//     let peers = peer_목록_얻기(swarm);
-//     peers.iter().for_each(|p| info!("{}", p));
-// }
 pub fn 연결된_peer_출력_함수(swarm: &Swarm<앱동작_구조체>) {
     let peers = peer_목록_얻기(swarm);
-    peers.iter().for_each(|p| println!("{}", p));
+    peers.iter().for_each(|p| info!("{}", p));
 }
 
 
