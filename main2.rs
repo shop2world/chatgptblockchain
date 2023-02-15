@@ -65,29 +65,30 @@ fn 해시_계산(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: 
     hasher.update(데이터.to_string().as_bytes());
     hasher.finalize().as_slice().to_owned()
 }
-
+//
 fn 블록_채굴(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str) -> (u64, String) {
-    info!("mining block...");
+    info!("블록 채굴...");
     let mut 논스 = 0;
 
-    loop {
+    for _ in 0..std::usize::MAX {
         if 논스 % 100000 == 0 {
             info!("논스: {}", 논스);
         }
-        let 해시 = 해시_계산(id, 타임스탬프, 이전_해시, 데이터, 논스);
-        let binary_hash = 해쉬_이진수_표현(&해시);
-        if binary_hash.starts_with(난이도) {
+        let 해시 = 해쉬_계산(id, 타임스탬프, 이전_해시, 데이터, 논스);
+        let 이진_해쉬 = 해쉬_이진수_표현(&해시);
+        if 이진_해쉬.starts_with(난이도) {
             info!(
-                "mined! 논스: {}, 해시: {}, binary 해시: {}",
+                "성공! 논스: {}, 해시: {}, binary 해시: {}",
                 논스,
                 hex::encode(&해시),
-                binary_hash
+                이진_해쉬
             );
             return (논스, hex::encode(해시));
         }
         논스 += 1;
     }
-}
+    (0, "".to_string())
+} 
 //변수만 아니라 코드도 바꾼 부분
 fn 해쉬_이진수_표현(해시: &[u8]) -> String {
     해시.iter().map(|z| format!("{:b}", z)).collect::<String>()
