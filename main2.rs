@@ -99,7 +99,7 @@ fn 블록_채굴(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: 
         if 논스 % 100000 == 0 {
             info!("논스: {}", 논스);
         }
-        let 해시 = 해시_계산(id, 타임스탬프, 이전_해시, 데이터, 논스);
+        let 해시 = 해쉬_계산(id, 타임스탬프, 이전_해시, 데이터, 논스);
         let 이진_해시 = 해쉬_이진수_표현(&해시);
         if 이진_해시.starts_with(난이도) {
             info!(
@@ -161,7 +161,7 @@ impl 앱 {
                 block.id, previous_block.id
             );
             return false;
-        } else if hex::encode(해시_계산(
+        } else if hex::encode(해쉬_계산(
             block.id,
             block.타임스탬프,
             &block.이전_해시,
