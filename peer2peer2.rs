@@ -39,9 +39,9 @@ pub struct AppBehaviour {
     pub floodsub: Floodsub,
     pub mdns: Mdns,
     #[behaviour(ignore)]
-    pub response_sender: mpsc::UnboundedSender<ChainResponse>,
+    pub 반응_송신자: mpsc::UnboundedSender<ChainResponse>,
     #[behaviour(ignore)]
-    pub init_sender: mpsc::UnboundedSender<bool>,
+    pub 초기_송신자: mpsc::UnboundedSender<bool>,
     #[behaviour(ignore)]
     pub app: 앱,
 }
@@ -49,22 +49,22 @@ pub struct AppBehaviour {
 impl AppBehaviour {
     pub async fn new(
         app: 앱,
-        response_sender: mpsc::UnboundedSender<ChainResponse>,
-        init_sender: mpsc::UnboundedSender<bool>,
+        반응_송신자: mpsc::UnboundedSender<ChainResponse>,
+        초기_송신자: mpsc::UnboundedSender<bool>,
     ) -> Self {
-        let mut behaviour = Self {
+        let mut 처리_하자 = Self {
             app,
             floodsub: Floodsub::new(*PEER_ID),
             mdns: Mdns::new(Default::default())
                 .await
                 .expect("can create mdns"),
-            response_sender,
-            init_sender,
+            반응_송신자,
+            초기_송신자,
         };
-        behaviour.floodsub.subscribe(CHAIN_TOPIC.clone());
-        behaviour.floodsub.subscribe(BLOCK_TOPIC.clone());
+        처리_하자.floodsub.subscribe(CHAIN_TOPIC.clone());
+        처리_하자.floodsub.subscribe(BLOCK_TOPIC.clone());
 
-        behaviour
+        처리_하자
     }
 }
 
@@ -77,13 +77,13 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
                     info!("Response from {}:", msg.source);
                     resp.블록들.iter().for_each(|r| info!("{:?}", r));
 
-                    self.app.블록들 = self.app.choose_chain(self.app.블록들.clone(), resp.블록들);
+                    self.app.블록들 = self.app.체인_선택_함수(self.app.블록들.clone(), resp.블록들);
                 }
             } else if let Ok(resp) = serde_json::from_slice::<LocalChainRequest>(&msg.data) {
-                info!("sending local chain to {}", msg.source.to_string());
+                info!("sending 로칼 chain to {}", msg.source.to_string());
                 let peer_id = resp.from_peer_id;
                 if PEER_ID.to_string() == peer_id {
-                    if let Err(e) = self.response_sender.send(ChainResponse {
+                    if let Err(e) = self.반응_송신자.send(ChainResponse {
                         블록들: self.app.블록들.clone(),
                         receiver: msg.source.to_string(),
                     }) {
@@ -119,7 +119,7 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for AppBehaviour {
 
 pub fn get_list_peers(swarm: &Swarm<AppBehaviour>) -> Vec<String> {
     info!("Discovered Peers:");
-    let nodes = swarm.behaviour().mdns.discovered_nodes();
+    let nodes = swarm.처리_하자().mdns.discovered_nodes();
     let mut unique_peers = HashSet::new();
     for peer in nodes {
         unique_peers.insert(peer);
@@ -135,14 +135,14 @@ pub fn handle_print_peers(swarm: &Swarm<AppBehaviour>) {
 pub fn handle_print_chain(swarm: &Swarm<AppBehaviour>) {
     info!("Local Blockchain:");
     let pretty_json =
-        serde_json::to_string_pretty(&swarm.behaviour().app.블록들).expect("can jsonify 블록들");
+        serde_json::to_string_pretty(&swarm.처리_하자().app.블록들).expect("can jsonify 블록들");
     info!("{}", pretty_json);
 }
 
 pub fn handle_create_block(cmd: &str, swarm: &mut Swarm<AppBehaviour>) {
     if let Some(데이터) = cmd.strip_prefix("create b") {
-        let behaviour = swarm.behaviour_mut();
-        let 마지막_블록 = behaviour
+        let 처리_하자 = swarm.behaviour_mut();
+        let 마지막_블록 = 처리_하자
             .app
             .블록들
             .last()
@@ -153,9 +153,9 @@ pub fn handle_create_block(cmd: &str, swarm: &mut Swarm<AppBehaviour>) {
             데이터.to_owned(),
         );
         let json = serde_json::to_string(&block).expect("can jsonify request");
-        behaviour.app.블록들.push(block);
+        처리_하자.app.블록들.push(block);
         info!("broadcasting new block");
-        behaviour
+        처리_하자
             .floodsub
             .publish(BLOCK_TOPIC.clone(), json.as_bytes());
     }
