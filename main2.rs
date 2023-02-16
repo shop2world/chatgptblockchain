@@ -146,18 +146,18 @@ impl 앱 {
 
     fn 블록_유효성확인_함수(&self, block: &블록, previous_block: &블록) -> bool {
         if block.이전_해시 != previous_block.해시 {
-            warn!("block with id: {} has wrong previous 해시", block.id);
+            warn!("id: {} 인 블록은 잘못된 이전 해시를 가짐", block.id);
             return false;
         } else if !해쉬_이진수_표현(
-            &hex::decode(&block.해시).expect("can decode from hex"),
+            &hex::decode(&block.해시).expect("16진수로부터 디코딩할 수 있음."),
         )
         .starts_with(난이도)
         {
-            warn!("block with id: {} has invalid difficulty", block.id);
+            warn!("id: {} 인 블록의 난이도가 잘못되었습니다.", block.id);
             return false;
         } else if block.id != previous_block.id + 1 {
             warn!(
-                "block with id: {} is not the next block after the latest: {}",
+                "id: {} 를 가진 블록은 유효하지 않은 난이도를 가지고 있습니다.: {}",
                 block.id, previous_block.id
             );
             return false;
@@ -169,43 +169,43 @@ impl 앱 {
             block.논스,
         )) != block.해시
         {
-            warn!("block with id: {} has invalid 해시", block.id);
+            warn!("블록 id: {} 의 해시가 올바르지 않습니다", block.id);
             return false;
         }
         true
     }
 
-    fn is_chain_valid(&self, chain: &[블록]) -> bool {
+    fn 체인_유효성_확인_함수(&self, chain: &[블록]) -> bool {
         for i in 0..chain.len() {
             if i == 0 {
                 continue;
             }
-            let first = chain.get(i - 1).expect("has to exist");
-            let second = chain.get(i).expect("has to exist");
-            if !self.블록_유효성확인_함수(second, first) {
+            let 첫번째 = chain.get(i - 1).expect("존재해야 합니다");
+            let 두번째 = chain.get(i).expect("존재해야 합니다");
+            if !self.블록_유효성확인_함수(두번째, 첫번째) {
                 return false;
             }
         }
         true
     }
 
-    // We always choose the longest valid chain
-    fn choose_chain(&mut self, local: Vec<블록>, remote: Vec<블록>) -> Vec<블록> {
-        let is_local_valid = self.is_chain_valid(&local);
-        let is_remote_valid = self.is_chain_valid(&remote);
+    // 긴체인이 유효한 체인
+    fn 체인_선택_함수(&mut self, 로칼: Vec<블록>, 외부: Vec<블록>) -> Vec<블록> {
+        let 로칼_유효 = self.체인_유효성_확인_함수(&로칼);
+        let 외부_유효 = self.체인_유효성_확인_함수(&외부);
 
-        if is_local_valid && is_remote_valid {
-            if local.len() >= remote.len() {
-                local
+        if 로칼_유효 && 외부_유효 {
+            if 로칼.len() >= 외부.len() {
+                로칼
             } else {
-                remote
+                외부
             }
-        } else if is_remote_valid && !is_local_valid {
-            remote
-        } else if !is_remote_valid && is_local_valid {
-            local
+        } else if 외부_유효 && !로칼_유효 {
+            외부
+        } else if !외부_유효 && 로칼_유효 {
+            로칼
         } else {
-            panic!("local and remote chains are both invalid");
+            panic!("로칼과 외부 체인 모두 유효하지 않습니다");
         }
     }
 }
@@ -215,12 +215,12 @@ async fn main() {
     pretty_env_logger::init();
 
     info!("Peer Id: {}", peer2peer::PEER_ID.clone());
-    let (response_sender, mut response_rcv) = mpsc::unbounded_channel();
-    let (init_sender, mut init_rcv) = mpsc::unbounded_channel();
+    let (반응_송신자, mut 반응_수신) = mpsc::unbounded_channel();
+    let (초기_송신자, mut 초기_수신) = mpsc::unbounded_channel();
 
     let auth_keys = Keypair::<X25519Spec>::new()
         .into_authentic(&peer2peer::KEYS)
-        .expect("can create auth keys");
+        .expect("인증 키를 생성할 수 있습니다.");
 
     let transp = TokioTcpConfig::new()
         .upgrade(upgrade::Version::V1)
@@ -228,9 +228,9 @@ async fn main() {
         .multiplex(mplex::MplexConfig::new())
         .boxed();
 
-    let behaviour = peer2peer::AppBehaviour::new(앱::new(), response_sender, init_sender.clone()).await;
+    let 처리_하자 = peer2peer::AppBehaviour::new(앱::new(), 반응_송신자, 초기_송신자.clone()).await;
 
-    let mut swarm = SwarmBuilder::new(transp, behaviour, *peer2peer::PEER_ID)
+    let mut swarm = SwarmBuilder::new(transp, 처리_하자, *peer2peer::PEER_ID)
         .executor(Box::new(|fut| {
             spawn(fut);
         }))
@@ -242,24 +242,24 @@ async fn main() {
         &mut swarm,
         "/ip4/0.0.0.0/tcp/0"
             .parse()
-            .expect("can get a local socket"),
+            .expect("can get a 로칼 socket"),
     )
     .expect("swarm can be started");
 
     spawn(async move {
         sleep(Duration::from_secs(1)).await;
         info!("sending init event");
-        init_sender.send(true).expect("can send init event");
+        초기_송신자.send(true).expect("can send init event");
     });
 
     loop {
         let evt = {
             select! {
                 line = stdin.next_line() => Some(peer2peer::EventType::Input(line.expect("can get line").expect("can read line from stdin"))),
-                response = response_rcv.recv() => {
+                response = 반응_수신.recv() => {
                     Some(peer2peer::EventType::LocalChainResponse(response.expect("response exists")))
                 },
-                _init = init_rcv.recv() => {
+                _init = 초기_수신.recv() => {
                     Some(peer2peer::EventType::Init)
                 }
                 event = swarm.select_next_some() => {
