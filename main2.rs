@@ -53,17 +53,18 @@ impl 블록 {
     }
 }
 
-fn 해시_계산(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str, 논스: u64) -> Vec<u8> {
-    let 데이터 = serde_json::json!({
+//변경
+fn 해쉬_계산(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str, 논스: u64) -> Vec<u8> {
+    let 데이터 = serde_json::to_value(&json!({
         "id": id,
         "이전_해시": 이전_해시,
         "데이터": 데이터,
         "타임스탬프": 타임스탬프,
         "논스": 논스
-    });
+    })).unwrap();
     let mut hasher = Sha256::new();
     hasher.update(데이터.to_string().as_bytes());
-    hasher.finalize().as_slice().to_owned()
+    hasher.finalize().to_vec()
 }
 
 // 리눅스에서 오류나는 코드
