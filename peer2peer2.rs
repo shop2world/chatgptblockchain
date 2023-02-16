@@ -142,14 +142,14 @@ pub fn handle_print_chain(swarm: &Swarm<AppBehaviour>) {
 pub fn handle_create_block(cmd: &str, swarm: &mut Swarm<AppBehaviour>) {
     if let Some(데이터) = cmd.strip_prefix("create b") {
         let behaviour = swarm.behaviour_mut();
-        let latest_block = behaviour
+        let 마지막_블록 = behaviour
             .app
             .블록들
             .last()
             .expect("there is at least one block");
         let block = 블록::new(
-            latest_block.id + 1,
-            latest_block.해시.clone(),
+            마지막_블록.id + 1,
+            마지막_블록.해시.clone(),
             데이터.to_owned(),
         );
         let json = serde_json::to_string(&block).expect("can jsonify request");
