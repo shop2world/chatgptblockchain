@@ -119,7 +119,7 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for AppBehaviour {
 
 pub fn get_list_peers(swarm: &Swarm<AppBehaviour>) -> Vec<String> {
     info!("Discovered Peers:");
-    let nodes = swarm.처리_하자().mdns.discovered_nodes();
+    let nodes = swarm.behaviour().mdns.discovered_nodes();//네트워크에서 찾은 노드 목록을 nodes 변수에 할당
     let mut unique_peers = HashSet::new();
     for peer in nodes {
         unique_peers.insert(peer);
@@ -135,7 +135,7 @@ pub fn handle_print_peers(swarm: &Swarm<AppBehaviour>) {
 pub fn handle_print_chain(swarm: &Swarm<AppBehaviour>) {
     info!("Local Blockchain:");
     let pretty_json =
-        serde_json::to_string_pretty(&swarm.처리_하자().app.블록들).expect("can jsonify 블록들");
+        serde_json::to_string_pretty(&swarm.behaviour().app.블록들).expect("can jsonify 블록들");
     info!("{}", pretty_json);
 }
 
