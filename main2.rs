@@ -53,7 +53,6 @@ impl 블록 {
     }
 }
 
-//변경
 fn 해쉬_계산(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str, 논스: u64) -> Vec<u8> {
     let 데이터 = serde_json::to_value(&json!({
         "id": id,
@@ -124,28 +123,28 @@ impl 앱 {
         Self { 블록들: vec![] }
     }
 
-    fn genesis(&mut self) {
-        let genesis_block = 블록 {
+    fn 제네시스_함수(&mut self) {
+        let 제네시스_블록_변수 = 블록 {
             id: 0,
             타임스탬프: Utc::now().timestamp(),
-            이전_해시: String::from("genesis"),
-            데이터: String::from("genesis!"),
+            이전_해시: String::from("제네시스"),
+            데이터: String::from("제네시스!!"),
             논스: 2836,
-            해시: "0000f816a87f806bb0073dcf026a64fb40c946b5abee2573702828694d5b4c43".to_string(),
+            해시: "111111111111111111111111111111111111111111111111".to_string(),
         };
-        self.블록들.push(genesis_block);
+        self.블록들.push(제네시스_블록_변수);
     }
 
-    fn try_add_block(&mut self, block: 블록) {
-        let latest_block = self.블록들.last().expect("there is at least one block");
-        if self.is_block_valid(&block, latest_block) {
-            self.블록들.push(block);
-        } else {
-            error!("could not add block - invalid");
+    //
+    fn 블록_추가시도_함수(&mut self, block: 블록) {
+        let 마지막_블록 = self.블록들.last().expect("적어도 하나의 블록이 존재");
+        match self.블록_유효성확인_함수(&block, 마지막_블록) {
+        true => self.블록들.push(block),
+        false => error!("블록 추가 불가 - 유효하지 않음"),
         }
     }
 
-    fn is_block_valid(&self, block: &블록, previous_block: &블록) -> bool {
+    fn 블록_유효성확인_함수(&self, block: &블록, previous_block: &블록) -> bool {
         if block.이전_해시 != previous_block.해시 {
             warn!("block with id: {} has wrong previous 해시", block.id);
             return false;
@@ -183,7 +182,7 @@ impl 앱 {
             }
             let first = chain.get(i - 1).expect("has to exist");
             let second = chain.get(i).expect("has to exist");
-            if !self.is_block_valid(second, first) {
+            if !self.블록_유효성확인_함수(second, first) {
                 return false;
             }
         }
@@ -274,7 +273,7 @@ async fn main() {
             match event {
                 peer2peer::EventType::Init => {
                     let peers = peer2peer::get_list_peers(&swarm);
-                    swarm.behaviour_mut().app.genesis();
+                    swarm.behaviour_mut().app.제네시스_함수();
 
                     info!("connected nodes: {}", peers.len());
                     if !peers.is_empty() {
