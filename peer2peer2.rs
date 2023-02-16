@@ -92,7 +92,7 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
                 }
             } else if let Ok(block) = serde_json::from_slice::<블록>(&msg.data) {
                 info!("received new block from {}", msg.source.to_string());
-                self.app.try_add_block(block);
+                self.app.블록_추가시도_함수(block);
             }
         }
     }
