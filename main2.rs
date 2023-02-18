@@ -269,6 +269,12 @@ async fn main() {
             }
         };
 
+        // RUST_LOG 환경변수 값이 "info" 이상일 때 "명령어 안내" 출력
+        if let Ok(level_filter) = std::env::var("RUST_LOG") {
+        if level_filter == "info" || level_filter == "debug" || level_filter == "trace" {
+            println!("명령어 안내");
+        }
+    }
         if let Some(event) = evt {
             match event {
                 peer2peer::이벤트_유형_열거형_데이타::Init => {
