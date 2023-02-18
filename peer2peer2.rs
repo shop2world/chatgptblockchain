@@ -140,7 +140,7 @@ pub fn 체인_출력_처리_함수(swarm: &Swarm<AppBehaviour>) {
 }
 
 pub fn 새_블록_생성_처리_함수(cmd: &str, swarm: &mut Swarm<AppBehaviour>) {
-    if let Some(데이터) = cmd.strip_prefix("create b") {
+    if let Some(데이터) = cmd.strip_prefix("new block") {
         let 처리_하자 = swarm.behaviour_mut();
         let 마지막_블록 = 처리_하자
             .app
