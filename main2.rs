@@ -300,9 +300,9 @@ async fn main() {
                         .publish(peer2peer::CHAIN_TOPIC.clone(), json.as_bytes());
                 }
                 peer2peer::이벤트_유형_열거형_데이타::Input(라인) => match 라인.as_str() {
-                    "ls p" => peer2peer::handle_print_peers(&swarm),
-                    cmd if cmd.starts_with("ls c") => peer2peer::체인_출력_처리_함수(&swarm),
-                    cmd if cmd.starts_with("create b") => peer2peer::새_블록_생성_처리_함수(cmd, &mut swarm),
+                    "show peer" => peer2peer::handle_print_peers(&swarm),
+                    cmd if cmd.starts_with("show chain") => peer2peer::체인_출력_처리_함수(&swarm),
+                    cmd if cmd.starts_with("new block") => peer2peer::새_블록_생성_처리_함수(cmd, &mut swarm),
                     _ => error!("모르는 명령"),
                 },
             }
