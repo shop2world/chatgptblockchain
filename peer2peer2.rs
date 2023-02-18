@@ -24,12 +24,12 @@ pub struct ChainResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LocalChainRequest {
-    pub from_peer_id: String,
+pub struct 로칼_체인_요청_구조체 {
+    pub 출처_peer_id: String,
 }
 
-pub enum EventType {
-    LocalChainResponse(ChainResponse),
+pub enum 이벤트_유형_열거형_데이타 {
+    로컬_체인_반응(ChainResponse),
     Input(String),
     Init,
 }
@@ -72,16 +72,16 @@ impl AppBehaviour {
 impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
     fn inject_event(&mut self, event: FloodsubEvent) {
         if let FloodsubEvent::Message(msg) = event {
-            if let Ok(resp) = serde_json::from_slice::<ChainResponse>(&msg.data) {
-                if resp.receiver == PEER_ID.to_string() {
+            if let Ok(응답) = serde_json::from_slice::<ChainResponse>(&msg.data) {
+                if 응답.receiver == PEER_ID.to_string() {
                     info!("Response from {}:", msg.source);
-                    resp.블록들.iter().for_each(|r| info!("{:?}", r));
+                    응답.블록들.iter().for_each(|r| info!("{:?}", r));
 
-                    self.app.블록들 = self.app.체인_선택_함수(self.app.블록들.clone(), resp.블록들);
+                    self.app.블록들 = self.app.체인_선택_함수(self.app.블록들.clone(), 응답.블록들);
                 }
-            } else if let Ok(resp) = serde_json::from_slice::<LocalChainRequest>(&msg.data) {
+            } else if let Ok(응답) = serde_json::from_slice::<로칼_체인_요청_구조체>(&msg.data) {
                 info!("sending 로칼 chain to {}", msg.source.to_string());
-                let peer_id = resp.from_peer_id;
+                let peer_id = 응답.출처_peer_id;
                 if PEER_ID.to_string() == peer_id {
                     if let Err(e) = self.반응_송신자.send(ChainResponse {
                         블록들: self.app.블록들.clone(),
@@ -117,7 +117,7 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for AppBehaviour {
     }
 }
 
-pub fn get_list_peers(swarm: &Swarm<AppBehaviour>) -> Vec<String> {
+pub fn peer_목록_얻기(swarm: &Swarm<AppBehaviour>) -> Vec<String> {
     info!("Discovered Peers:");
     let nodes = swarm.behaviour().mdns.discovered_nodes();//네트워크에서 찾은 노드 목록을 nodes 변수에 할당
     let mut unique_peers = HashSet::new();
@@ -128,18 +128,18 @@ pub fn get_list_peers(swarm: &Swarm<AppBehaviour>) -> Vec<String> {
 }
 
 pub fn handle_print_peers(swarm: &Swarm<AppBehaviour>) {
-    let peers = get_list_peers(swarm);
+    let peers = peer_목록_얻기(swarm);
     peers.iter().for_each(|p| info!("{}", p));
 }
 
-pub fn handle_print_chain(swarm: &Swarm<AppBehaviour>) {
+pub fn 체인_출력_처리_함수(swarm: &Swarm<AppBehaviour>) {
     info!("Local Blockchain:");
     let pretty_json =
         serde_json::to_string_pretty(&swarm.behaviour().app.블록들).expect("can jsonify 블록들");
     info!("{}", pretty_json);
 }
 
-pub fn handle_create_block(cmd: &str, swarm: &mut Swarm<AppBehaviour>) {
+pub fn 새_블록_생성_처리_함수(cmd: &str, swarm: &mut Swarm<AppBehaviour>) {
     if let Some(데이터) = cmd.strip_prefix("create b") {
         let 처리_하자 = swarm.behaviour_mut();
         let 마지막_블록 = 처리_하자
