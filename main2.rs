@@ -242,28 +242,28 @@ async fn main() {
         &mut swarm,
         "/ip4/0.0.0.0/tcp/0"
             .parse()
-            .expect("can get a 로칼 socket"),
+            .expect("로컬 소켓을 얻을 수 있음"),
     )
-    .expect("swarm can be started");
+    .expect("swarm을 시작할 수 있음");
 
     spawn(async move {
         sleep(Duration::from_secs(1)).await;
-        info!("sending init event");
-        초기_송신자.send(true).expect("can send init event");
+        info!("초기 이벤트 전송 중");
+        초기_송신자.send(true).expect("초기 이벤트 전송 가능");
     });
 
     loop {
         let evt = {
             select! {
-                line = stdin.next_line() => Some(peer2peer::EventType::Input(line.expect("can get line").expect("can read line from stdin"))),
+                라인 = stdin.next_line() => Some(peer2peer::이벤트_유형_열거형_데이타::Input(라인.expect("라인을 얻을 수 있음").expect("stdin에서 라인을 읽을 수 있음"))),
                 response = 반응_수신.recv() => {
-                    Some(peer2peer::EventType::LocalChainResponse(response.expect("response exists")))
+                    Some(peer2peer::이벤트_유형_열거형_데이타::로컬_체인_반응(response.expect("반응이 존재함")))
                 },
                 _init = 초기_수신.recv() => {
-                    Some(peer2peer::EventType::Init)
+                    Some(peer2peer::이벤트_유형_열거형_데이타::Init)
                 }
                 event = swarm.select_next_some() => {
-                    info!("Unhandled Swarm Event: {:?}", event);
+                    info!("처리되지 않은 Swarm Event: {:?}", event);
                     None
                 },
             }
@@ -271,39 +271,39 @@ async fn main() {
 
         if let Some(event) = evt {
             match event {
-                peer2peer::EventType::Init => {
-                    let peers = peer2peer::get_list_peers(&swarm);
+                peer2peer::이벤트_유형_열거형_데이타::Init => {
+                    let peers = peer2peer::peer_목록_얻기(&swarm);
                     swarm.behaviour_mut().app.제네시스_함수();
 
-                    info!("connected nodes: {}", peers.len());
+                    info!("연결된 노드들: {}", peers.len());
                     if !peers.is_empty() {
-                        let req = peer2peer::LocalChainRequest {
-                            from_peer_id: peers
+                        let req = peer2peer::로칼_체인_요청_구조체 {
+                            출처_peer_id: peers
                                 .iter()
                                 .last()
-                                .expect("at least one peer")
+                                .expect("최소 하나의 피어")
                                 .to_string(),
                         };
 
-                        let json = serde_json::to_string(&req).expect("can jsonify request");
+                        let json = serde_json::to_string(&req).expect("요청을 json화 할 수 있음");
                         swarm
                             .behaviour_mut()
                             .floodsub
                             .publish(peer2peer::CHAIN_TOPIC.clone(), json.as_bytes());
                     }
                 }
-                peer2peer::EventType::LocalChainResponse(resp) => {
-                    let json = serde_json::to_string(&resp).expect("can jsonify response");
+                peer2peer::이벤트_유형_열거형_데이타::로컬_체인_반응(응답) => {
+                    let json = serde_json::to_string(&응답).expect("반응을 json 화 할 수 있음");
                     swarm
                         .behaviour_mut()
                         .floodsub
                         .publish(peer2peer::CHAIN_TOPIC.clone(), json.as_bytes());
                 }
-                peer2peer::EventType::Input(line) => match line.as_str() {
+                peer2peer::이벤트_유형_열거형_데이타::Input(라인) => match 라인.as_str() {
                     "ls p" => peer2peer::handle_print_peers(&swarm),
-                    cmd if cmd.starts_with("ls c") => peer2peer::handle_print_chain(&swarm),
-                    cmd if cmd.starts_with("create b") => peer2peer::handle_create_block(cmd, &mut swarm),
-                    _ => error!("unknown command"),
+                    cmd if cmd.starts_with("ls c") => peer2peer::체인_출력_처리_함수(&swarm),
+                    cmd if cmd.starts_with("create b") => peer2peer::새_블록_생성_처리_함수(cmd, &mut swarm),
+                    _ => error!("모르는 명령"),
                 },
             }
         }
