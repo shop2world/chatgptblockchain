@@ -121,7 +121,7 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for AppBehaviour {
 }
 
 pub fn peer_목록_얻기(swarm: &Swarm<AppBehaviour>) -> Vec<String> {
-    info!("발견된 Peer들:");
+    info!("발견된 Peer:");
     let nodes = swarm.behaviour().mdns.discovered_nodes();//네트워크에서 찾은 노드 목록을 nodes 변수에 할당
     let mut unique_peers = HashSet::new();
     for peer in nodes {
@@ -157,7 +157,7 @@ pub fn 새_블록_생성_처리_함수(cmd: &str, swarm: &mut Swarm<AppBehaviour
         );
         let json = serde_json::to_string(&block).expect("can jsonify request");
         처리_하자.app.블록들.push(block);
-        info!("새 블록 배포");
+        info!("broadcasting new block");
         처리_하자
             .floodsub
             .publish(BLOCK_TOPIC.clone(), json.as_bytes());
