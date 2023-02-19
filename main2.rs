@@ -214,7 +214,7 @@ impl 앱 {
 async fn main() {
     pretty_env_logger::init();
 
-    info!("Peer Id: {}", peer2peer::PEER_ID.clone());
+    info!("이곳의 Peer Id: {}", peer2peer::PEER_ID.clone());
     let (반응_송신자, mut 반응_수신) = mpsc::unbounded_channel();
     let (초기_송신자, mut 초기_수신) = mpsc::unbounded_channel();
 
@@ -240,7 +240,7 @@ async fn main() {
 
     Swarm::listen_on(
         &mut swarm,
-        "/ip4/0.0.0.0/tcp/0"
+        "/ip4/127.0.0.1/tcp/0"
             .parse()
             .expect("로컬 소켓을 얻을 수 있음"),
     )
