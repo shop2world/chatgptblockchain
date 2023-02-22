@@ -38,11 +38,13 @@ pub struct 블록 {
     pub 논스: u64,
 }
 
+// Self를 Self 대신 구조체 이름 블록으로 변경하여 impl 블록 구현체의 함수 시그니처에 사용할 수 있습니다. 이를 통해 코드를 보다 가독성 높은 방향으로 개선할 수 있습니다.
+
 impl 블록 {
-    pub fn new(id: u64, 이전_해시: String, 데이터: String) -> Self {
+    pub fn new(id: u64, 이전_해시: String, 데이터: String) -> 블록 {
         let now = Utc::now();
         let (논스, 해시) = 블록_채굴(id, now.timestamp(), &이전_해시, &데이터);
-        Self {
+        블록 {
             id,
             해시,
             타임스탬프: now.timestamp(),
@@ -52,6 +54,21 @@ impl 블록 {
         }
     }
 }
+
+// impl 블록 {
+//     pub fn new(id: u64, 이전_해시: String, 데이터: String) -> Self {
+//         let now = Utc::now();
+//         let (논스, 해시) = 블록_채굴(id, now.timestamp(), &이전_해시, &데이터);
+//         Self {
+//             id,
+//             해시,
+//             타임스탬프: now.timestamp(),
+//             이전_해시,
+//             데이터,
+//             논스,
+//         }
+//     }
+// }
 
 fn 해쉬_계산(id: u64, 타임스탬프: i64, 이전_해시: &str, 데이터: &str, 논스: u64) -> Vec<u8> {
     let 데이터 = serde_json::to_value(&json!({
